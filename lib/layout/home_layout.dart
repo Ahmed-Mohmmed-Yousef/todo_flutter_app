@@ -5,6 +5,7 @@ import 'package:todo_flutter_app/modules/archive_task.dart';
 import 'package:todo_flutter_app/modules/done_task.dart';
 import 'package:todo_flutter_app/modules/new_task.dart';
 import 'package:todo_flutter_app/shared/component/components.dart';
+import 'package:todo_flutter_app/shared/component/constans.dart';
 
 class HomeLayout extends StatefulWidget {
   const HomeLayout({Key? key}) : super(key: key);
@@ -58,9 +59,10 @@ class _HomeLayoutState extends State<HomeLayout> {
       key: scaffoldKay,
       appBar: AppBar(
         title: Text(titles[currentIndex]),
-        automaticallyImplyLeading: false,
       ),
-      body: screens[currentIndex],
+      body: tasks.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : screens[currentIndex],
       floatingActionButton: FloatingActionButton(
         onPressed: () => openBottomSheet(),
         child: Icon(isBottomSheetOpened ? Icons.add : Icons.edit),
@@ -89,23 +91,33 @@ class _HomeLayoutState extends State<HomeLayout> {
           date: dateController.text,
           time: timeController.text,
         ).then((value) {
-          print('$value was inserted in to database');
-          Navigator.of(context).pop();
-          print(titleController.text);
-          isBottomSheetOpened = false;
-          setState(() {});
+          
+          
+          // setState(() {});
+          getDataFromDatabase(database).then((value) {
+            Navigator.of(context).pop();
+            
+            setState(() {
+              isBottomSheetOpened = false;
+              tasks =value;
+            });
+            // print(value);
+          });
         });
       }
     } else {
       isBottomSheetOpened = true;
       setState(() {});
-      scaffoldKay.currentState?.showBottomSheet(
-        (context) => bottomSheet(),
-        enableDrag: false,
-        elevation: 15.0,
-        // shape: const RoundedRectangleBorder(),
-        // backgroundColor: Colors.grey[400],
-      );
+      scaffoldKay.currentState!
+          .showBottomSheet(
+            (context) => bottomSheet(),
+            elevation: 15.0,
+          )
+          .closed
+          .then((value) {
+        isBottomSheetOpened = false;
+        setState(() {});
+      });
     }
   }
 
@@ -199,8 +211,13 @@ class _HomeLayoutState extends State<HomeLayout> {
           print('error occure ${error.toString()}');
         });
       },
-      onOpen: ((db) {
+      onOpen: ((database) {
         print('Database opened');
+        getDataFromDatabase(database).then((value) {
+          setState(() {
+            tasks = value;
+          });
+        });
       }),
     );
   }
@@ -217,5 +234,9 @@ class _HomeLayoutState extends State<HomeLayout> {
     };
 
     return await database.insert('tasks', values);
+  }
+
+  Future<List<Map<String, Object?>>> getDataFromDatabase(Database database) {
+    return database.query('tasks');
   }
 }
