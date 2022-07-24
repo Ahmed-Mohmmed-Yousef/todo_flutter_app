@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:todo_flutter_app/modules/archive_task.dart';
@@ -6,15 +7,9 @@ import 'package:todo_flutter_app/modules/done_task.dart';
 import 'package:todo_flutter_app/modules/new_task.dart';
 import 'package:todo_flutter_app/shared/component/components.dart';
 import 'package:todo_flutter_app/shared/component/constans.dart';
+import 'package:todo_flutter_app/shared/cubit/cubit_cubit.dart';
 
-class HomeLayout extends StatefulWidget {
-  const HomeLayout({Key? key}) : super(key: key);
-
-  @override
-  State<HomeLayout> createState() => _HomeLayoutState();
-}
-
-class _HomeLayoutState extends State<HomeLayout> {
+class HomeLayout extends StatelessWidget {
   final scaffoldKay = GlobalKey<ScaffoldState>();
   final formKay = GlobalKey<FormState>();
   final TextEditingController titleController = TextEditingController();
@@ -25,61 +20,42 @@ class _HomeLayoutState extends State<HomeLayout> {
 
   late Database database;
 
-  final List<Widget> screens = const [
-    NewTasksScreen(),
-    DoneTasksScreen(),
-    ArchiveTasksScreen(),
-  ];
-
-  final List<String> titles = const [
-    'New Tasks',
-    "Done Tasks",
-    'Archive Tasks',
-  ];
-
-  int _currentIndex = 0;
-
-  int get currentIndex => _currentIndex;
-
-  set currentIndex(int currentIndex) {
-    _currentIndex = currentIndex;
-    setState(() {});
-  }
-
-  @override
-  void initState() {
-    // TODO: implement initState
-    super.initState();
-    createDatabase();
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: scaffoldKay,
-      appBar: AppBar(
-        title: Text(titles[currentIndex]),
+    return BlocProvider(
+      create: (context) => AppCubit(),
+      child: BlocConsumer<AppCubit, AppState>(
+        listener: (context, state) {},
+        builder: (BuildContext context, Object? state) {
+          AppCubit cubit = AppCubit.get(context);
+          return Scaffold(
+            key: scaffoldKay,
+            appBar: AppBar(
+              title: Text(cubit.getTitle()),
+            ),
+            body: false
+                ? const Center(child: CircularProgressIndicator())
+                : cubit.screens[cubit.currentIndex],
+            floatingActionButton: FloatingActionButton(
+              onPressed: () => openBottomSheet(),
+              child: Icon(isBottomSheetOpened ? Icons.add : Icons.edit),
+            ),
+            bottomNavigationBar: BottomNavigationBar(
+              type: BottomNavigationBarType.fixed,
+              currentIndex: cubit.currentIndex,
+              items: const [
+                BottomNavigationBarItem(icon: Icon(Icons.menu), label: "Tasks"),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.check_circle_outline), label: "Done"),
+                BottomNavigationBarItem(
+                    icon: Icon(Icons.archive_outlined), label: "Archive")
+              ],
+              onTap: (value) => cubit.setCurrentIndex(value),
+            ),
+            // bottomSheet: bottomSheet(),
+          );
+        },
       ),
-      body: tasks.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : screens[currentIndex],
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => openBottomSheet(),
-        child: Icon(isBottomSheetOpened ? Icons.add : Icons.edit),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        currentIndex: currentIndex,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.menu), label: "Tasks"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.check_circle_outline), label: "Done"),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.archive_outlined), label: "Archive")
-        ],
-        onTap: (value) => currentIndex = value,
-      ),
-      // bottomSheet: bottomSheet(),
     );
   }
 
@@ -91,23 +67,21 @@ class _HomeLayoutState extends State<HomeLayout> {
           date: dateController.text,
           time: timeController.text,
         ).then((value) {
-          
-          
           // setState(() {});
           getDataFromDatabase(database).then((value) {
-            Navigator.of(context).pop();
-            
-            setState(() {
-              isBottomSheetOpened = false;
-              tasks =value;
-            });
+            // Navigator.of(context).pop();
+
+            // setState(() {
+            //   isBottomSheetOpened = false;
+            //   tasks =value;
+            // });
             // print(value);
           });
         });
       }
     } else {
       isBottomSheetOpened = true;
-      setState(() {});
+      // setState(() {});
       scaffoldKay.currentState!
           .showBottomSheet(
             (context) => bottomSheet(),
@@ -116,7 +90,7 @@ class _HomeLayoutState extends State<HomeLayout> {
           .closed
           .then((value) {
         isBottomSheetOpened = false;
-        setState(() {});
+        // setState(() {});
       });
     }
   }
@@ -152,15 +126,15 @@ class _HomeLayoutState extends State<HomeLayout> {
               }),
               readOnly: true,
               onTap: () async {
-                TimeOfDay? pickedTime = await showTimePicker(
-                  context: context,
-                  initialTime: TimeOfDay.now(),
-                );
-                if (pickedTime != null) {
-                  dateController.text = pickedTime.format(context).toString();
-                } else {
-                  print("Date is not selected");
-                }
+                // TimeOfDay? pickedTime = await showTimePicker(
+                //   context: context,
+                //   initialTime: TimeOfDay.now(),
+                // );
+                // if (pickedTime != null) {
+                //   dateController.text = pickedTime.format(context).toString();
+                // } else {
+                //   print("Date is not selected");
+                // }
               },
             ),
             const SizedBox(
@@ -177,18 +151,18 @@ class _HomeLayoutState extends State<HomeLayout> {
               }),
               readOnly: true,
               onTap: () async {
-                DateTime? pickedTime = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime(2050));
-                if (pickedTime != null) {
-                  timeController.text = DateFormat.yMMMd()
-                      .format(pickedTime)
-                      .toString(); //.toString();
-                } else {
-                  print("Date is not selected");
-                }
+                // DateTime? pickedTime = await showDatePicker(
+                //     context: context,
+                //     initialDate: DateTime.now(),
+                //     firstDate: DateTime.now(),
+                //     lastDate: DateTime(2050));
+                // if (pickedTime != null) {
+                //   timeController.text = DateFormat.yMMMd()
+                //       .format(pickedTime)
+                //       .toString(); //.toString();
+                // } else {
+                //   print("Date is not selected");
+                // }
               },
             ),
           ],
@@ -214,9 +188,9 @@ class _HomeLayoutState extends State<HomeLayout> {
       onOpen: ((database) {
         print('Database opened');
         getDataFromDatabase(database).then((value) {
-          setState(() {
-            tasks = value;
-          });
+          // setState(() {
+          //   tasks = value;
+          // });
         });
       }),
     );
