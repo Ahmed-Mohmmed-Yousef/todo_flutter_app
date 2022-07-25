@@ -7,7 +7,7 @@ import 'package:todo_flutter_app/modules/done_task.dart';
 import 'package:todo_flutter_app/modules/new_task.dart';
 import 'package:todo_flutter_app/shared/component/components.dart';
 import 'package:todo_flutter_app/shared/component/constans.dart';
-import 'package:todo_flutter_app/shared/cubit/cubit_cubit.dart';
+import 'package:todo_flutter_app/shared/cubit/cubit.dart';
 
 class HomeLayout extends StatelessWidget {
   final scaffoldKay = GlobalKey<ScaffoldState>();
@@ -16,16 +16,22 @@ class HomeLayout extends StatelessWidget {
   final TextEditingController timeController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
 
-  bool isBottomSheetOpened = false;
-
-  late Database database;
-
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => AppCubit(),
+      create: (context) => AppCubit()..createDatabase(),
       child: BlocConsumer<AppCubit, AppState>(
-        listener: (context, state) {},
+        listener: (context, state) {
+          AppCubit cubit = AppCubit.get(context);
+          if (state is AppInserteDatabaseState) {
+            print('state is AppInserteDatabaseState');
+            cubit.getDataFromDatabase(cubit.database);
+          }
+
+          if (state is AppInserteDatabaseState) {
+            Navigator.of(context).pop();
+          }
+        },
         builder: (BuildContext context, Object? state) {
           AppCubit cubit = AppCubit.get(context);
           return Scaffold(
@@ -33,12 +39,12 @@ class HomeLayout extends StatelessWidget {
             appBar: AppBar(
               title: Text(cubit.getTitle()),
             ),
-            body: false
+            body: state is AppGetDatabaseLoadingState
                 ? const Center(child: CircularProgressIndicator())
                 : cubit.screens[cubit.currentIndex],
             floatingActionButton: FloatingActionButton(
-              onPressed: () => openBottomSheet(),
-              child: Icon(isBottomSheetOpened ? Icons.add : Icons.edit),
+              onPressed: () => openBottomSheet(cubit),
+              child: Icon(cubit.isBottomSheetOpened ? Icons.add : Icons.edit),
             ),
             bottomNavigationBar: BottomNavigationBar(
               type: BottomNavigationBarType.fixed,
@@ -59,43 +65,33 @@ class HomeLayout extends StatelessWidget {
     );
   }
 
-  void openBottomSheet() {
-    if (isBottomSheetOpened) {
+  void openBottomSheet(AppCubit cubit) {
+    if (cubit.isBottomSheetOpened) {
       if (formKay.currentState!.validate()) {
-        insertToDatabsed(
+        cubit.isBottomSheetOpened = false;
+        cubit.insertToDatabsed(
           title: titleController.text,
           date: dateController.text,
           time: timeController.text,
-        ).then((value) {
-          // setState(() {});
-          getDataFromDatabase(database).then((value) {
-            // Navigator.of(context).pop();
-
-            // setState(() {
-            //   isBottomSheetOpened = false;
-            //   tasks =value;
-            // });
-            // print(value);
-          });
-        });
+        );
       }
     } else {
-      isBottomSheetOpened = true;
+      cubit.isBottomSheetOpened = true;
       // setState(() {});
       scaffoldKay.currentState!
           .showBottomSheet(
-            (context) => bottomSheet(),
+            (context) => bottomSheet(context),
             elevation: 15.0,
           )
           .closed
           .then((value) {
-        isBottomSheetOpened = false;
+        cubit.isBottomSheetOpened = false;
         // setState(() {});
       });
     }
   }
 
-  Container bottomSheet() {
+  Container bottomSheet(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(20.0),
       child: Form(
@@ -116,7 +112,7 @@ class HomeLayout extends StatelessWidget {
               height: 15,
             ),
             DefualtTextField(
-              controller: dateController,
+              controller: timeController,
               icon: Icons.alarm,
               title: 'Task time',
               validator: ((value) {
@@ -126,22 +122,22 @@ class HomeLayout extends StatelessWidget {
               }),
               readOnly: true,
               onTap: () async {
-                // TimeOfDay? pickedTime = await showTimePicker(
-                //   context: context,
-                //   initialTime: TimeOfDay.now(),
-                // );
-                // if (pickedTime != null) {
-                //   dateController.text = pickedTime.format(context).toString();
-                // } else {
-                //   print("Date is not selected");
-                // }
+                TimeOfDay? pickedTime = await showTimePicker(
+                  context: context,
+                  initialTime: TimeOfDay.now(),
+                );
+                if (pickedTime != null) {
+                  timeController.text = pickedTime.format(context).toString();
+                } else {
+                  print("Date is not selected");
+                }
               },
             ),
             const SizedBox(
               height: 15,
             ),
             DefualtTextField(
-              controller: timeController,
+              controller: dateController,
               icon: Icons.calendar_today,
               title: 'Task date',
               validator: ((value) {
@@ -151,66 +147,23 @@ class HomeLayout extends StatelessWidget {
               }),
               readOnly: true,
               onTap: () async {
-                // DateTime? pickedTime = await showDatePicker(
-                //     context: context,
-                //     initialDate: DateTime.now(),
-                //     firstDate: DateTime.now(),
-                //     lastDate: DateTime(2050));
-                // if (pickedTime != null) {
-                //   timeController.text = DateFormat.yMMMd()
-                //       .format(pickedTime)
-                //       .toString(); //.toString();
-                // } else {
-                //   print("Date is not selected");
-                // }
+                DateTime? pickedTime = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime(2050));
+                if (pickedTime != null) {
+                  dateController.text = DateFormat.yMMMd()
+                      .format(pickedTime)
+                      .toString(); //.toString();
+                } else {
+                  print("Date is not selected");
+                }
               },
             ),
           ],
         ),
       ),
     );
-  }
-
-  void createDatabase() async {
-    database = await openDatabase(
-      'todo.db',
-      version: 1,
-      onCreate: (db, version) {
-        print('Databse created');
-        var exc = db.execute(
-            'CREATE TABLE tasks (id INTEGER PRIMARY KEY, title TEXT, date TEXT, time TEXT, status TEXT)');
-        exc.then((value) {
-          print('Table created');
-        }).catchError((error) {
-          print('error occure ${error.toString()}');
-        });
-      },
-      onOpen: ((database) {
-        print('Database opened');
-        getDataFromDatabase(database).then((value) {
-          // setState(() {
-          //   tasks = value;
-          // });
-        });
-      }),
-    );
-  }
-
-  Future<int> insertToDatabsed(
-      {required String title,
-      required String date,
-      required String time}) async {
-    Map<String, Object?> values = {
-      "title": title,
-      "date": date,
-      "time": time,
-      "status": 'New',
-    };
-
-    return await database.insert('tasks', values);
-  }
-
-  Future<List<Map<String, Object?>>> getDataFromDatabase(Database database) {
-    return database.query('tasks');
   }
 }

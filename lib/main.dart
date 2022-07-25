@@ -1,7 +1,15 @@
+import 'package:bloc/bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:todo_flutter_app/layout/home_layout.dart';
+import 'package:todo_flutter_app/shared/obsearver.dart';
 
 void main() {
+  BlocOverrides.runZoned(
+    () {
+      // Use blocs...
+    },
+    blocObserver: MyBlocObserver(),
+  );
   runApp(const MyApp());
 }
 
