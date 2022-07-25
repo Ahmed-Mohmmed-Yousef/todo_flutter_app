@@ -23,8 +23,8 @@ class HomeLayout extends StatelessWidget {
       child: BlocConsumer<AppCubit, AppState>(
         listener: (context, state) {
           AppCubit cubit = AppCubit.get(context);
-          if (state is AppInserteDatabaseState) {
-            print('state is AppInserteDatabaseState');
+          if (state is AppInserteDatabaseState || state is AppUpdateDatabaseLoadingState || state is AppDeleteDatabaseLoadingState) {
+            print('state is inserte || Inserte || delete');
             cubit.getDataFromDatabase(cubit.database);
           }
 

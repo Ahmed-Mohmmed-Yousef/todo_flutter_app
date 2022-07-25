@@ -1,6 +1,7 @@
 import 'dart:ffi';
 
 import 'package:flutter/material.dart';
+import 'package:todo_flutter_app/shared/cubit/cubit.dart';
 
 class DefualtTextField extends StatelessWidget {
   const DefualtTextField({
@@ -35,45 +36,66 @@ class DefualtTextField extends StatelessWidget {
   }
 }
 
- Widget buildTaskItem(Map model) {
-    return Padding(
-    padding: const EdgeInsets.all(20.0),
-    child: Row(
-      children: [
-        CircleAvatar(
-          radius: 40,
-          child: Text(
-            model['time'],
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
+Widget buildTaskItem(Map model, BuildContext context) {
+  return Dismissible(
+    key: Key('${model['id']}'),
+    child: Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 40,
+            child: Text(
+              model['time'],
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: 20),
-        Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children:  [
-            Text(
-              model['title'],
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  model['title'],
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  model['date'],
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
             ),
-            Text(
-              model['date'],
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-              ),
-            ),
-          ],
-        )
-      ],
+          ),
+          const SizedBox(width: 20),
+          IconButton(
+            icon: const Icon(Icons.check_box, color: Colors.green),
+            onPressed: () {
+              AppCubit.get(context).updateTask('done', model['id']);
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.archive, color: Colors.black45),
+            onPressed: () {
+              AppCubit.get(context).updateTask('archive', model['id']);
+            },
+          ),
+        ],
+      ),
     ),
+    onDismissed: (direction) {
+      AppCubit.get(context).deletTask(model['id']);
+    },
   );
-  }
+}

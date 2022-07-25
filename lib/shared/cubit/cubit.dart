@@ -16,7 +16,10 @@ class AppCubit extends Cubit<AppState> {
 
   static AppCubit get(BuildContext context) => BlocProvider.of(context);
 
-  List<Map<String,Object?>> tasks = [];
+  List<Map<String, Object?>> newTasks = [];
+  List<Map<String, Object?>> doneTasks = [];
+  List<Map<String, Object?>> archiveTasks = [];
+  
 
   late Database database;
 
@@ -77,16 +80,14 @@ class AppCubit extends Cubit<AppState> {
   }
 
   void insertToDatabsed(
-      {required String title,
-      required String date,
-      required String time}) {
+      {required String title, required String date, required String time}) {
     Map<String, Object?> values = {
       "title": title,
       "date": date,
       "time": time,
       "status": 'New',
     };
-    
+
     database.insert('tasks', values).then((value) {
       print('$value inserted succ');
       emit(AppInserteDatabaseState());
@@ -96,8 +97,24 @@ class AppCubit extends Cubit<AppState> {
   void getDataFromDatabase(Database database) {
     emit(AppGetDatabaseLoadingState());
     database.query('tasks').then((value) {
-      tasks = value;
+      newTasks = value.where((element) => element['status'] == 'New').toList();
+      doneTasks = value.where((element) => element['status'] == 'done').toList();
+      archiveTasks = value.where((element) => element['status'] == 'archive').toList();
       emit(AppGetDatabaseState());
     });
   }
+
+  void updateTask(String status, int taskId) {
+    database.rawUpdate('UPDATE tasks SET status = ? WHERE id = ?',
+        [status, taskId]).then((value) {
+      emit(AppUpdateDatabaseLoadingState());
+    });
+  }
+
+  void deletTask(int id) {
+    database.delete('tasks', where: 'id = ?', whereArgs: [id]).then((value) {
+      emit(AppDeleteDatabaseLoadingState());
+    }).catchError((error) => print('Error on delete row id = $id, error : ${error.toString()}'));
+  }
+
 }
